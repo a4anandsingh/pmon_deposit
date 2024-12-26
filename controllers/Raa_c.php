@@ -621,14 +621,14 @@ class Raa_c extends MX_Controller{
 			'IRRIGATION_POTENTIAL_KHARIF',
 			'IRRIGATION_POTENTIAL_RABI',
 			'IRRIGATION_POTENTIAL', 'ADDED_BY',
-			'EXPENDITURE_TOTAL', 'EXPENDITURE_WORK');
+			'EXPENDITURE_TOTAL', 'EXPENDITURE_WORK','ROAD_WORKS');
 	}
 	protected function getEstimationStatus(){
 		$mFields = array(
 			'PROJECT_ID', 'LA_NA', 'FA_NA',
 			'HEAD_WORKS_EARTHWORK_NA', 'HEAD_WORKS_MASONRY_NA', 'STEEL_WORKS_NA',
 			'CANAL_EARTHWORK_NA', 'CANAL_STRUCTURES_NA', 
-			'CANAL_LINING_NA', 'IRRIGATION_POTENTIAL_NA'
+			'CANAL_LINING_NA', 'IRRIGATION_POTENTIAL_NA' ,'ROAD_WORKS_NA'
 		);
 		$recs = $this->db->get_where(
 			'dep_pmon__t_estimated_status', 
@@ -666,6 +666,35 @@ class Raa_c extends MX_Controller{
 			'ADDED_BY', 'RAA_SAVE_DATE'
 		);
 	}
+	/*START AMIT 12-08-2024*/
+	public function checkStatusByNoDate(){
+		$this->PROJECT_ID = $this->input->post('PROJECT_ID');
+		$raaProjectId = $this->input->post('RAA_PROJECT_ID');
+		$entryType = $this->input->post('IS_RAA');
+		$param =  array(
+			'PROJECT_ID' => $this->PROJECT_ID,
+			'RAA_PROJECT_ID' => $raaProjectId,
+			'IS_RAA' => $entryType,
+			'RAA_NO'=>$this->input->post('RAA_NO'), 
+			'RAA_DATE'=> myDateFormat($this->input->post('RAA_DATE'))
+		);
+		$arrType = array('1' => 'RAA', '2' => 'Sanction', '3'=> 'TS ');
+		$response = array('status' => "success", 'message' => "OK");
+		$this->db->select('*');
+        $this->db->from('dep_pmon__t_raa_project');
+        $this->db->where(array('PROJECT_ID '=> $param['PROJECT_ID'], 'RAA_NO' => $param['RAA_NO'], 'RAA_DATE' => $param['RAA_DATE']));
+		if($param['RAA_PROJECT_ID']){
+            $this->db->where(array('RAA_PROJECT_ID <>' => $param['RAA_PROJECT_ID']));
+        }
+		$recs = $this->db->get();
+		//echo $this->db->last_query();
+        if($recs && $recs->num_rows()) {
+            $rec = $recs->row();
+            $response = array('status' => "failed", 'message' => "This ".$arrType[$param['IS_RAA']]." number & ".$arrType[$param['IS_RAA']]." Date already exists.");
+        }
+		echo json_encode($response);  
+	}
+	/*END AMIT 12-08-2024*/
 	public function saveRAAData(){
 		$this->PROJECT_ID = $this->input->post('PROJECT_ID');
 		$raaProjectId = $this->input->post('RAA_PROJECT_ID');
@@ -679,7 +708,7 @@ class Raa_c extends MX_Controller{
 		$goAhead = false;
 		$entryType = $this->input->post('IS_RAA');
 		$raaAmount = 0;
-		if($entryType==1)
+		if(intval($entryType) == 1)
 			$raaAmount = $this->input->post('RAA_AMOUNT');
 			$data = array(
 			'SESSION_ID'=>$sessionId,  
@@ -692,6 +721,72 @@ class Raa_c extends MX_Controller{
 			'ADDED_BY'=>$this->input->post('ADDED_BY'),
 			'IS_RAA'=>$entryType
 		);// myDateFormat($this->input->post('RAA_SAVE_DATE'))
+    /* START 04-06-2024*/
+    if(intval($data['IS_RAA']) == 1){
+    	$eworkId= 0;
+		$this->db->select('PROJECT_ID, EWORK_ID');
+		$this->db->where('PROJECT_ID', $this->PROJECT_ID);
+		$recs = $this->db->get('dep_pmon__v_projectlist_with_lock');
+		if($recs && $recs->num_rows()){
+			$rec = $recs->row();
+			$eworkId =$rec->EWORK_ID;
+		}
+    	$this->db->select('RAA_NO, RAA_DATE, RAA_AMOUNT');
+		$this->db->order_by('RAA_DATE', 'ASC');
+		$this->db->where('PROJECT_ID', $this->PROJECT_ID);
+		$this->db->where('IS_RAA', 1);
+		$recs = $this->db->get('dep_pmon__t_raa_project');		
+    	$sn=$recs->num_rows();
+    	if(!$editMode) $sn++;
+    
+    	$RAAIssuedBy ='';
+    	$strSQL = ' SELECT * FROM pmon__m_authority WHERE AUTHORITY_ID = '.$data['RAA_AUTHORITY_ID'];
+    	$recs = $this->db->query($strSQL);	
+    	if($recs && $recs->num_rows()){
+        	$rec = $recs->row();
+        	$RAAIssuedBy =$rec->AUTHORITY_NAME;
+        	if(intval($rec->AUTHORITY_ID) == 10){
+            	$RAAIssuedBy = 'Govt. of chhattisgarh';
+            }
+        }
+		$arrRAAIssueAuthority =array(
+            5=>"Others",
+            6=>"Commissioner",
+            8=>"Collector",
+            9=>"Govt. of Madhya Pradesh",
+            10=>"Govt. of chhattisgarh",
+            11=>"Chief Engineer",
+            12=>"Superintending Engineer",
+            13=>"Executive Engineer",
+            14=>"???? ???? ??????? ?????",
+            15=>"National Thermal Power Corporation (NTPC)",
+            16=>"CEO Zilla Panchayat"
+        );
+    	$params = array(
+                'mode'=>'raasetup',
+                "projectCode"=>$this->PROJECT_ID,
+                "RAANo"=>$data['RAA_NO'],
+                "RAADate"=>$data['RAA_DATE'],
+                "RAAAmount"=>$data['RAA_AMOUNT'],
+                "RAASerialNo"=>$sn,
+                "DIVISION_ID"=>$eworkId,
+        		//"RAAIssuedBy" => $RAAIssuedBy,
+        		"RAAIssuedBy" => $arrRAAIssueAuthority[$data['RAA_AUTHORITY_ID']],
+            );
+            //showArrayValues($params); exit;
+            if(!IS_LOCAL_SERVER){
+                $this->load->library('mycurl');
+                $result = $this->mycurl->savePromonData($params);
+            //echo $result;
+                $obj = json_decode($result);
+                if(intval($obj->{'success'}) != 1){
+                    array_push($this->message, getMyArray(false, 'RAA Details is failed to sending epayment server.'.$obj->{'message'}));
+                    echo createJSONResponse( $this->message );
+                    exit;
+                }
+            }
+    }
+    /* END 04-06-2024*/
 		if($editMode){
 			$arrWhere = array(
 				'RAA_PROJECT_ID'=>$raaProjectId, 
@@ -878,7 +973,9 @@ class Raa_c extends MX_Controller{
 			$obj = json_decode($result);
 			if($obj->{'success'}){
 				array_push($this->message, getMyArray(true, 'RAA Data Sent to E-Works Server...'));
-			}
+			}else{
+                array_push($this->message, getMyArray(true, 'RAA Data Not Sent to E-Works Server... '.$obj->{'message'}));
+            }
 		}
 	}
 	//

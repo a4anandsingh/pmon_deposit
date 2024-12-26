@@ -1,3 +1,10 @@
+<div class="ui-state-error" style="padding:5px">
+<span class="cus-lightbulb"></span> 
+<strong>Deposit Module में पुनरीक्षित प्रशासकीय स्वीकृति (RAA) विवरण entry करने के बाद, <br />
+	E-payment (E-works) में  Send Works/Agreement To E-kosh Module से पुनरीक्षित प्रशासकीय स्वीकृति (RAA) विवरण को E-kosh में भेजे।
+</strong>
+</div>
+<div class="wrdlinebreak"></div>
 <form name="frmProject" id="frmProject" onsubmit="return false;">
 	<input type="hidden" name="PROJECT_ID" id="PROJECT_ID" value="<?php echo $PROJECT_ID;?>" />
 	<input type="hidden" name="RAA_PROJECT_ID" id="RAA_PROJECT_ID" value="<?php echo $raaData['RAA_PROJECT_ID'];?>" />
@@ -16,12 +23,12 @@
 <tr>
 	<td class="ui-widget-content" align="center">
         <div id="radioset"><strong>Entry Type : </strong>
-			<?php /*
+			
 			<input type="radio" id="radio1" name="IS_RAA" value="1" 
             	onchange="changeCheckBoxOption(1, this.checked)"
 			<?php echo ($raaData['IS_RAA']==1)? 'checked="checked"':'';?> />
             <label for="radio1">RAA</label>
-			*/?>
+			
 
             <input type="radio" id="radio2" name="IS_RAA" value="2" 
 	            onchange="changeCheckBoxOption(2, this.checked)"
@@ -42,8 +49,8 @@
 <div class="wrdlinebreak"></div>
 <div class="ui-state-error" style="padding:5px">
 <span class="cus-lightbulb"></span> 
-<strong>यदि नवीनतम मात्रा में कमी हो तभी कम मात्रा भरें। <br />
-यदि नवीनतम मात्रा(Latest) में कोई भी परिवर्तन न हो तो नवीनतम मात्रा (Latest) कॉलम में पुरानी मात्रा (Old) को ही डालना है।</strong>
+<strong>अगर नवीनतम मात्रा में कमी हो तभी कम मात्रा भरें। <br />
+अगर नवीनतम मात्रा(Latest) में कोई भी परिवर्तन न हो तो नवीनतम मात्रा(Latest) कॉलम में पुरानी मात्रा(Old) को ही डालना है।</strong>
 </div>
 <table width="100%" border="0" cellpadding="3" class="ui-widget-content" id="RAA_DETAIL">
 <tr>
@@ -74,7 +81,7 @@
       </select>
     </td>
   <td class="ui-state-default"><strong id="raa_amt"><?php echo $entryMode;?> Amount :</strong></td>
-  <td class="ui-widget-content"><input name="RAA_AMOUNT" id="RAA_AMOUNT" disabled="disabled" type="text" 
+  <td class="ui-widget-content"><input name="RAA_AMOUNT" id="RAA_AMOUNT" type="text" 
         	size="12" maxlength="20" 
             value="<?php echo $raaData['RAA_AMOUNT'];?>" 
             class=" righttext" /> Rs. In Lacs
@@ -225,7 +232,34 @@ $arrEstimationAchievements = array(
 		'AC_VALUE'=>$currentEstimation['CANAL_LINING'],
 		'SHOW'=>1
 		),
-	array('SNO'=>10,
+
+	array(
+		'SNO'=>10,
+		'TITLE'=>'Road Works', 
+		'UNIT'=>'Km.',
+		'NA_VALUE'=>$estimationStatus['ROAD_WORKS_NA'],
+		'EA_NAME'=>'ROAD_WORKS', 
+		'EA_VALUE'=>$previousEstimation['ROAD_WORKS'], 
+		'AC_NAME'=>'ROAD_WORKS',
+		'AC_VALUE'=>$currentEstimation['ROAD_WORKS'],
+		'SHOW'=>1
+
+		/*'SNO'=>10,
+		'TITLE'=>'Road Works', 
+		'UNIT'=>'Km.',
+		'NA_BOX'=>TRUE,
+		'NA_VALUE'=>$estimationStatus['ROAD_WORKS_NA'],
+		'EA_NAME'=>'ROAD_WORKS', 
+		'EA_VALUE'=>$estimationData['ROAD_WORKS'], 
+		'AC_NAME'=>'ROAD_WORKS_ACHIEVE',
+		'AC_VALUE'=>$achievementValues['ROAD_WORKS'],
+
+		'LEA_NAME'=>'ROAD_WORKS_LEA',								//Latest Estimated Amount
+		'LEA_VALUE'=>$estimationAmountData['ROAD_WORKS_LEA'],
+		'SHOW'=>1*/
+	),
+
+	array('SNO'=>11,
 		'TITLE'=>'Designed Irrigation Potential', 
 		'UNIT'=>'Hectares',
 		'NA_VALUE'=>$estimationStatus['IRRIGATION_POTENTIAL_NA'],
@@ -252,18 +286,20 @@ foreach($arrEstimationAchievements as $x){
 	if($x['NA_VALUE']) continue;
 	$myClass = ($x['NA_VALUE'])? '' : 'required';
 	$rowSpan = '';
-	if($x['SNO']==10){
+	if($x['SNO']==11){
 		$rowSpan = 'rowspan="3"';
 	}
 	echo '<tr>
 		<td nowrap="nowrap" class="ui-widget-content" '.$rowSpan.'><strong>'.$x['TITLE'].'</strong></td>
 		<td nowrap="nowrap" class="ui-widget-content" '.$rowSpan.'>'.$x['UNIT'].'</td>';
 
-	if($x['SNO']==10){
+	if($x['SNO']==11){
 		array_push($arrValidComponent, $x['AC_NAME'].'_KHARIF');
 		array_push($arrValidComponent, $x['AC_NAME'].'_RABI');
 		echo '<td align="center" class="ui-widget-content">Kharif</td>
-			<td align="right" class="ui-widget-content"><strong>'.$x['KHARIF']['EA_VALUE'].'</strong></td>
+			<td align="right" class="ui-widget-content">
+			<input type="hidden" id="esti'.$x['AC_NAME'].'_KHARIF" value="'.$x['KHARIF']['EA_VALUE'].'" />
+			<strong>'.$x['KHARIF']['EA_VALUE'].'</strong></td>
 			<td align="center" class="ui-widget-content">'.getRequiredSign('left').'
 			  <input name="'.$x['AC_NAME'].'_KHARIF" type="text" id="'.$x['AC_NAME'].'_KHARIF"
 			  onkeyup="calculateIrri()"			  	
@@ -271,7 +307,9 @@ foreach($arrEstimationAchievements as $x){
 			</td>
 			</tr><tr>
 			<td align="center" class="ui-widget-content">Rabi</td>
-			<td align="right" class="ui-widget-content"><strong>'.$x['RABI']['EA_VALUE'].'</strong></td>
+			<td align="right" class="ui-widget-content">
+			<input type="hidden" id="esti'.$x['AC_NAME'].'_RABI" value="'.$x['RABI']['EA_VALUE'].'" />
+			<strong>'.$x['RABI']['EA_VALUE'].'</strong></td>
 			<td align="center" class="ui-widget-content">'.getRequiredSign('left').'
 			  <input name="'.$x['AC_NAME'].'_RABI" type="text" id="'.$x['AC_NAME'].'_RABI"
 				 size="12" maxlength="50"  class="righttext" 
@@ -303,17 +341,21 @@ foreach($arrEstimationAchievements as $x){
 </table>
 <div id="mySaveDiv" align="right" class="mysavebar">
 <?php 
-if($raaData['ADDED_BY']){
+$userId = getSessionDataByKey("USER_ID");
+if($raaData['RAA_PROJECT_ID']==0){
+	echo getButton('Save', 'saveRAASetup()', 4, 'cus-disk'). ' &nbsp; ';
+}else if($userId==23){
+	echo getButton('Save', 'saveRAASetup()', 4, 'cus-disk'). ' &nbsp; ';
+}else if($raaData['ADDED_BY']){
 	if($isMonthlyExists){
-			
+		
 	}else
 		echo getButton('Save', 'saveRAASetup()', 4, 'cus-disk'). ' &nbsp; ';
-}else{
-	if($raaData['RAA_PROJECT_ID']==0){
-		echo getButton('Save', 'saveRAASetup()', 4, 'cus-disk'). ' &nbsp; ';
-	}
 }
-echo getButton('Cancel', 'closeDialog()', 4, 'cus-cancel');?>
+echo getButton('Cancel', 'closeDialog()', 4, 'cus-cancel');
+echo '##'.$isMonthlyExists.'###';
+?>
+
 </div>
 </form>
 <script language="javascript" type="text/javascript">
@@ -380,13 +422,16 @@ function changeCheckBoxOption(mode, status){
 			});
 			$('#RAA_AMOUNT').prop('disabled', false);
 			<?php foreach($arrValidComponent as $comp){?>
+				var estiMinVal = parseFloat($('#esti<?php echo $comp;?>').val()); // add by amit on 08-08-2024
 				$('#<?php echo $comp;?>').rules("remove");
 				$('#<?php echo $comp;?>').rules( "add", {
 					required: true,
-					min: 0,
+					//min: 0,
+					min: estiMinVal,
 					messages: {
 						required: "Required.",
-						min: "Minimum value 0"
+						//min: "Minimum value 0"
+						min: "Minimum value is greater than or equal to "+estiMinVal
 					}
 				});
 			<?php }?>
@@ -402,13 +447,16 @@ function changeCheckBoxOption(mode, status){
 			$('#RAA_AMOUNT').rules("remove");
 			$('#RAA_AMOUNT').val(0);
 			<?php foreach($arrValidComponent as $comp){?>
+				var estiMinVal = parseFloat($('#esti<?php echo $comp;?>').val()); // add by amit on 08-08-2024
 				$('#<?php echo $comp;?>').rules("remove");
 				$('#<?php echo $comp;?>').rules( "add", {
 					required: true,
-					min: 0,
+					//min: 0,
+					min: estiMinVal,
 					messages: {
 						required: "Required.",
-						min: "Minimum value 0"
+						//min: "Minimum value 0"
+						min: "Minimum value is greater than or equal to "+estiMinVal
 					}
 				});
 				//$('#esti<?php echo $comp;?>').val()
@@ -425,13 +473,16 @@ function changeCheckBoxOption(mode, status){
 			$('#RAA_AMOUNT').prop('disabled', true);
 			$('#RAA_AMOUNT').val(0);
 			<?php foreach($arrValidComponent as $comp){?>
+				var estiMinVal = parseFloat($('#esti<?php echo $comp;?>').val()); // add by amit on 08-08-2024
 				$('#<?php echo $comp;?>').rules("remove");
 				$('#<?php echo $comp;?>').rules( "add", {
 					required: true,
-					min: 0,
+					//min: 0,
+					min: estiMinVal,
 					messages: {
 						required: "Required.",
-						min: "Minimum value 0"
+						//min: "Minimum value 0"
+						min: "Minimum value is greater than or equal to "+estiMinVal
 					}
 				});
 			<?php }?>
